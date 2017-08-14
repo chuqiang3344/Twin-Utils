@@ -1,0 +1,80 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xmlns:motan="http://api.weibo.com/schema/motan"
+       xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-2.5.xsd
+   http://api.weibo.com/schema/motan http://api.weibo.com/schema/motan.xsd">
+   
+    <!-- 读取zookeeper配置文件 -->
+    <bean id="propertyConfigurer"
+          class="org.springframework.beans.factory.config.PropertyPlaceholderConfigurer">
+        <property name="location">
+            <value>classpath:zookeeper.properties</value>
+        </property>
+        <property name="fileEncoding" value="utf-8"/>
+    </bean>
+
+    <!-- 注册中心配置 -->
+    <motan:registry regProtocol="zookeeper" name="my_zookeeper" address="${es.zookeeper.quorum}"/>
+    
+    <!-- 协议配置。为防止多个业务配置冲突，推荐使用id表示具体协议。-->
+    <!--<motan:protocol id="soaService" default="true" name="soaService"-->
+    <!--maxServerConnection="80000" maxContentLength="1048576"-->
+    <!--maxWorkerThread="800" minWorkerThread="20"/>-->
+    <!-- 通用配置，多个rpc服务使用相同的基础配置. group和module定义具体的服务池。export格式为“protocol id:提供服务的端口”-->
+    <!--<motan:basicService export="soaService:8002"-->
+    <!--group="group_soa" accessLog="false" shareChannel="true" module="group_soa"-->
+    <!--application="rmip-motan" registry="my_zookeeper" id="serviceBasicConfig"/>-->
+    <motan:protocol default="true" name="motan"
+                    maxServerConnection="80000" maxContentLength="20885760" workerQueueSize="100000" queueSize="100000" acceptConnections="20000" accepts="20000"             
+                    maxWorkerThread="1200" minWorkerThread="20" requestTimeout="10000"/>
+         <motan:protocol name="motan" maxClientConnection="200" minClientConnection="1"/>
+
+    <!-- 业务接口 -->
+    <!-- 公共搜索 -->
+    <bean id="publicSearch" class="org.zhonghong.ams.es.impl.search.pub.PublishSearch_Impl" />
+    <motan:service interface="org.zhonghong.ams.es.inter.search.pub.PublishSearch" ref="publicSearch"
+              group="ams2"     export="19001"  registry="my_zookeeper"  accessLog="true" />
+    <!-- 舆情监测 -->
+    <bean id="monitorImpl" class="org.zhonghong.ams.es.impl.search.def.SentimentMonitor_Impl"/>
+    <motan:service interface="org.zhonghong.ams.es.inter.search.def.SentimentMonitor" ref="monitorImpl"
+               group="ams2"     export="19002" registry="my_zookeeper"  accessLog="true"/>
+    <!-- 预警推送 -->
+    <bean id="alertImpl" class="org.zhonghong.ams.es.impl.search.def.AlertPush_Impl"/>
+    <motan:service interface="org.zhonghong.ams.es.inter.search.def.AlertPush" ref="alertImpl"
+                 group="ams2"   export="19003" registry="my_zookeeper"  accessLog="true"/>
+    <!-- 索引接口 -->
+    <bean id="indexImpl" class="org.zhonghong.ams.es.impl.index.IndexObject_Impl"/>
+    <motan:service interface="org.zhonghong.ams.es.inter.index.IndexObject" ref="indexImpl"
+                group="ams2"    export="19004" registry="my_zookeeper"  accessLog="true"/>
+                   
+    <!-- 索引接口 -->
+    <bean id="eventImpl" class="org.zhonghong.ams.es.impl.search.def.EventSearcherImpl"/>
+    <motan:service interface="org.zhonghong.ams.es.inter.search.def.EventSearcher" ref="eventImpl"
+                group="ams2"    export="19005" registry="my_zookeeper"  accessLog="true"/>
+    
+    <!-- 推荐接口 -->
+    <bean id="recommendationImpl" class="org.zhonghong.ams.es.impl.search.def.RecommendationSystemImpl"/>
+    <motan:service interface="org.zhonghong.ams.es.inter.search.def.RecommendationSystem" ref="recommendationImpl"
+              group="ams2"       export="19006" registry="my_zookeeper"  accessLog="true"/>
+    <!--上海用户查询接口-->
+    <bean id="userSearcherImpl" class="org.zhonghong.ams.es.impl.search.def.UserSearcherImpl"/>
+    <motan:service interface="org.zhonghong.ams.es.inter.search.def.UserSearcher" ref="userSearcherImpl"
+              group="ams2"       export="19007" registry="my_zookeeper"  accessLog="true"/>
+              
+              <bean id="monitorService" class="org.zhonghong.ams.es.impl.search.def.MonitorService"/>
+    <motan:service interface="org.zhonghong.ams.es.inter.search.def.MonitorApi" ref="monitorService" 
+              group="monitor"     export="19008"    registry="my_zookeeper"  accessLog="true"/>
+
+              
+     
+          <!-- 专题接口 -->
+	<bean id="dpSubjectSearchImpl" class="org.zhonghong.ams.es.impl.search.def.DpSubjectSearchImpl"/>
+	 <motan:service interface="org.zhonghong.ams.es.inter.search.def.DpSubjectSearch" ref="dpSubjectSearchImpl"
+              group="ams3"       export="19009" registry="my_zookeeper"  accessLog="true"/>         
+              
+             <!-- 专题s接口 -->
+	<bean id="dpSubjectsSearchImpl" class="org.zhonghong.ams.es.impl.search.def.DpSubjectsSearchImpl"/>
+	 <motan:service interface="org.zhonghong.ams.es.inter.search.def.DpSubjectsSearch" ref="dpSubjectsSearchImpl"
+              group="ams3"       export="19010" registry="my_zookeeper"  accessLog="true"/>              
+</beans>
