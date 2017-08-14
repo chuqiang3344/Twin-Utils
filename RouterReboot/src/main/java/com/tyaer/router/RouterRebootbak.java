@@ -8,14 +8,7 @@ import org.apache.log4j.Logger;
 
 import java.io.IOException;
 
-/**
- * 
- * 功能描述：路由器重启
- * @ClassName: RouterReboot 	
- * @author duanbj
- * @date 2016-4-23 上午10:17:47  
- * @Company 中泓在线软件有限公司
- */
+
 public class RouterRebootbak {
 	private static final Logger logger = Logger.getLogger("wechart");
 	
