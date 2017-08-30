@@ -1,4 +1,4 @@
-package com.tyaer.util.zookeeper;
+package com.tyaer.util.zookeeper.jp;
 
 public interface DistributeXLock {
 	

@@ -10,7 +10,6 @@
     <version>1.0</version>
     <modules>
         <module>base-utils</module>
-        <module>App</module>
         <module>util-redis</module>
         <module>util-zookeeper</module>
         <module>RouterReboot</module>

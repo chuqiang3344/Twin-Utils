@@ -1,4 +1,4 @@
-package com.tyaer.util.zookeeper;
+package com.tyaer.util.zookeeper.jp;
 
 public class ZKConstants {
 	//爬虫任务创建zookeeper父节点

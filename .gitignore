@@ -1,4 +1,4 @@
-App/
+/App/
 target
 *.iml
 out/
@@ -8,4 +8,3 @@ out/
 .settings/
 bin/
 .myeclipse
-

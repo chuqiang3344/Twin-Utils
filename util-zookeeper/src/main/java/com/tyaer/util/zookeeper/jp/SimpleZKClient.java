@@ -1,4 +1,4 @@
-package com.tyaer.util.zookeeper;
+package com.tyaer.util.zookeeper.jp;
 
 import java.util.Map;
 

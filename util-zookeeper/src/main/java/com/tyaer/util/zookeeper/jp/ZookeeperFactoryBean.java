@@ -1,4 +1,4 @@
-package com.tyaer.util.zookeeper;
+package com.tyaer.util.zookeeper.jp;
 
 import org.apache.curator.RetryPolicy;
 import org.apache.curator.framework.CuratorFramework;

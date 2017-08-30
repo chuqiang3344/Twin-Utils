@@ -1,4 +1,4 @@
-package com.tyaer.util.zookeeper;
+package com.tyaer.util.zookeeper.jp;
 
 import com.alibaba.fastjson.JSON;
 import org.apache.commons.lang3.StringUtils;
