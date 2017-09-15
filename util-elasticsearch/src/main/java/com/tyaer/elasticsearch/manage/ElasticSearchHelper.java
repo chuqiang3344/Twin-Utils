@@ -1,7 +1,9 @@
-package com.tyaer.elasticsearch;
+package com.tyaer.elasticsearch.manage;
 
 import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONObject;
+import org.apache.commons.lang3.StringUtils;
+import org.apache.log4j.Logger;
 import org.elasticsearch.ElasticsearchException;
 import org.elasticsearch.action.admin.cluster.state.ClusterStateResponse;
 import org.elasticsearch.action.admin.indices.exists.indices.IndicesExistsRequest;
@@ -32,16 +34,67 @@ import org.elasticsearch.search.SearchHits;
 
 import java.io.IOException;
 import java.lang.reflect.Method;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
+import java.util.concurrent.ArrayBlockingQueue;
 
-public class ElasticSearchHelper<T> {
+public class ElasticSearchHelper {
+    private static final Logger logger = Logger.getLogger(ElasticSearchHelper.class);
+    private ArrayBlockingQueue<UpdateRequestBuilder> arrayBlockingQueue = new ArrayBlockingQueue(8192);
+    private EsClientMananger esClientMananger;
 
+    public ElasticSearchHelper(String es_hosts,String esClusterName) {
+        esClientMananger = new EsClientMananger(es_hosts,esClusterName);
+        new Thread(() -> {
+            while (esClientMananger.REFRESH_CLIENT_SWITCH && arrayBlockingQueue.size() == 0) {
+                try {
+                    UpdateRequestBuilder updateRequestBuilder = arrayBlockingQueue.take();
+                    TransportClient client = esClientMananger.getEsClient();
+                    int retryNum = 5;
+                    boolean isOk = false;
+                    while (!isOk && retryNum > 0) {
+                        BulkRequestBuilder bulkRequest = client.prepareBulk();
+                        bulkRequest.add(updateRequestBuilder);
+                        BulkResponse bulkResponse = bulkRequest.get();
+                        logger.info("retryNum:" + retryNum + " retry id cause==>:" + bulkResponse.getItems()[0].getId());
+                        if (bulkResponse.hasFailures()) {
+                            for (BulkItemResponse itemResponse : bulkResponse.getItems()) {
+                                if (itemResponse.isFailed()) {
+                                    Failure failure = itemResponse.getFailure();
+                                    logger.error("retry failure cause==>>>> " + failure.getCause());
+                                    retryNum--;
+                                }
+                            }
+                        } else {
+                            isOk = true;
+                        }
+                    }
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
+            }
+        }).start();
+    }
 
-    // ---------------------- 索引相关 -----------------------
+    private static UpdateRequestBuilder changeToBuilder(BulkRequestBuilder bulkRequest, TransportClient client, String index,
+                                                        String type, Map<String, Object> obj) {
+        try {
+            String _id = obj.get("_id") + "";
+            obj.remove("_id");
+            Map<String, String> map = new HashMap();
+            for (String key : obj.keySet()) {
+                String value = obj.get(key) + "";
+                if (StringUtils.isNotBlank(value) && !"null".equals(value)) {
+                    map.put(key, value);
+                }
+            }
+            return client.prepareUpdate(index, type, _id).setDoc(map).setUpsert(map);
+        } catch (Exception e) {
+            e.printStackTrace();
+            return null;
+        }
+    }
 
-    private static String getter(Object obj, String att) {
+    private String getter(Object obj, String att) {
         try {
             Method method = obj.getClass().getMethod("get" + att);
             String value = method.invoke(obj) + "";
@@ -52,8 +105,8 @@ public class ElasticSearchHelper<T> {
         return null;
     }
 
-    private static UpdateRequestBuilder changeToBuilder(BulkRequestBuilder bulkRequest, TransportClient client, String index,
-                                                        String type, Object obj) {
+    private UpdateRequestBuilder changeToBuilder(BulkRequestBuilder bulkRequest, TransportClient client, String index,
+                                                 String type, Object obj) {
         try {
             Class<?> demo = obj.getClass();
             Method method[] = demo.getMethods();
@@ -81,45 +134,57 @@ public class ElasticSearchHelper<T> {
         }
     }
 
-    public static void BulkIndex(String index, String type, List<Object> lists) {
-        TransportClient client = EsClientMananger.getEsClient();
+    public void BulkIndex(String index, String type, List lists) {
+        TransportClient client = esClientMananger.getEsClient();
         try {
-
+            ArrayList<UpdateRequestBuilder> updateRequestBuilders = new ArrayList<>();
             BulkRequestBuilder bulkRequest = client.prepareBulk();
             for (int i = 0; i < lists.size(); i++) {
                 Object obj = lists.get(i);
                 if (obj == null) {
                     continue;
                 }
-                bulkRequest.add(changeToBuilder(bulkRequest, client, index, type, obj));
+                UpdateRequestBuilder request = changeToBuilder(bulkRequest, client, index, type, obj);
+                bulkRequest.add(request);
+                updateRequestBuilders.add(request);
             }
             BulkResponse bulkResponse = bulkRequest.get();
             if (bulkResponse.hasFailures()) {
-                for (BulkItemResponse itemResponse : bulkResponse.getItems()) {
-                    Failure failure = itemResponse.getFailure();
-                    if (failure != null) {
-                        System.err.println("cause==>>>> " + failure.getCause());
+                BulkItemResponse[] items = bulkResponse.getItems();
+                for (int i = 0; i < items.length; i++) {
+                    BulkItemResponse itemResponse = items[i];
+                    if (itemResponse.isFailed()) {
+                        Failure failure = itemResponse.getFailure();
+                        Throwable cause = failure.getCause();
+                        logger.error(i + " cause==>>>> " + cause);
+//                        if (!cause.toString().contains("AlreadyExistsException")) {
+//                        UpdateRequestBuilder requestBuilder = updateRequestBuilders.get(i);
+//                        boolean add = arrayBlockingQueue.add(requestBuilder);
+//                        logger.info("arrayBlockingQueue.size():" + arrayBlockingQueue.size());
+//                        if (!add) {
+//                            arrayBlockingQueue.put(requestBuilder);
+//                        }
+//                        }
                     }
                 }
+            } else {
+                StringBuilder stringBuilder = new StringBuilder();
+                for (BulkItemResponse bulkItemResponse : bulkResponse.getItems()) {
+                    String id = bulkItemResponse.getId();
+                    stringBuilder.append(id).append(",");
+                }
+                logger.info("存入ES成功:" + stringBuilder);
             }
-
         } catch (Exception e) {
             e.printStackTrace();
-            System.err.println(index + " ==>>  type : " + type + "  size: " + lists.size());
-        } finally {
-            if (client != null) {
-                // client.close();
-            }
+            logger.error(index + " ==>>  type : " + type + "  size: " + lists.size());
         }
     }
 
-    public static void main(String[] args) {
-        ElasticSearchHelper<Object> helper = new ElasticSearchHelper<>();
-        System.out.println(helper.getIndicies());
-    }
+    // ---------------------- 索引相关 -----------------------
 
-    public static void delete(String index_name, String index_type, String... ids) {
-        TransportClient transportClient = EsClientMananger.getEsClient();
+    public void delete(String index_name, String index_type, String... ids) {
+        TransportClient transportClient = esClientMananger.getEsClient();
         BulkRequestBuilder bulkRequest = transportClient.prepareBulk();
         BulkResponse bulkResponse = null;
         String json_result = "";
@@ -163,8 +228,8 @@ public class ElasticSearchHelper<T> {
      * @return 索引列表;
      * @desc 获取所有索引.
      */
-    public String[] getIndicies() {
-        TransportClient transportClient = EsClientMananger.getEsClient();
+    public List<String> getIndicies() {
+        TransportClient transportClient = esClientMananger.getEsClient();
         String indices[] = null;
         try {
             ClusterStateResponse clusterStateResponse = transportClient.admin().cluster().prepareState()
@@ -173,7 +238,7 @@ public class ElasticSearchHelper<T> {
         } catch (Exception e) {
             e.printStackTrace();
         }
-        return indices;
+        return Arrays.asList(indices);
     }
 
     /**
@@ -182,7 +247,7 @@ public class ElasticSearchHelper<T> {
      * @desc 判断某个索引是否存在
      */
     public boolean isExistsIndex(String indexName) {
-        TransportClient transportClient = EsClientMananger.getEsClient();
+        TransportClient transportClient = esClientMananger.getEsClient();
         IndicesExistsResponse indicesExistsResponse = null;
         try {
             indicesExistsResponse = transportClient.admin().indices()
@@ -200,7 +265,7 @@ public class ElasticSearchHelper<T> {
      * @desc 判断索引类型是否存在.
      */
     public boolean isExistsType(String indexName, String indexType) {
-        TransportClient transportClient = EsClientMananger.getEsClient();
+        TransportClient transportClient = esClientMananger.getEsClient();
         TypesExistsResponse response = null;
         response = transportClient.admin().indices()
                 .typesExists(new TypesExistsRequest(new String[]{indexName}, indexType)
@@ -246,7 +311,7 @@ public class ElasticSearchHelper<T> {
     }
 
     public void BulkIndexForUser(String index, String type, List<Object> lists) {
-        TransportClient client = EsClientMananger.getEsClient();
+        TransportClient client = esClientMananger.getEsClient();
         try {
 
             BulkRequestBuilder bulkRequest = client.prepareBulk();
@@ -271,74 +336,110 @@ public class ElasticSearchHelper<T> {
         } catch (Exception e) {
             e.printStackTrace();
             System.err.println(index + " ==>>  type : " + type + "  size: " + lists.size());
-        } finally {
-            if (client != null) {
-                // client.close();
-            }
         }
     }
 
     public void createIndex(String index, String type, String id, Object bean) {
-        TransportClient client = EsClientMananger.getEsClient();
+        TransportClient client = esClientMananger.getEsClient();
         // System.out.println(client != null);
         try {
             JSONObject jsonObj1 = (JSONObject) JSON.toJSON(bean);
             IndexResponse response = client.prepareIndex(index, type, id).setSource(jsonObj1).execute().actionGet();
         } catch (Exception e) {
             e.printStackTrace();
-        } finally {
-            if (client != null) {
-                // client.close();
-            }
         }
     }
 
-    public void update1(String index, String type, String id, Map<String, String> map) {
-        TransportClient client = EsClientMananger.getEsClient();
-        try {
-            client.prepareUpdate(index, type, id).setDoc(map).get();
-        } catch (Exception e) {
-            System.err.println("update wrong " + index + " " + id);
-            e.printStackTrace();
-        } finally {
-            if (client != null) {
-                // client.close();
-            }
-        }
-    }
     /**
-     * @param INDEX_AMS 索引名;
+     * @param INDEX_AMS  索引名;
      * @param index_type 索引类型;
-     * @param qualifiers kv形式的键值对;
      * @return 更新失败或者成功.
      * @desc 更新索引字段信息.
      */
-    public boolean delete(String INDEX_AMS, String index_type, String index_id,String field) {
-        TransportClient transportClient = EsClientMananger.getEsClient();
-        transportClient.prepareUpdate(INDEX_AMS, index_type, index_id).setScript(new Script("ctx._source.remove(\""+field+"\")", ScriptService.ScriptType.INLINE, null, null)).get();
+    public boolean delete(String INDEX_AMS, String index_type, String index_id, String field) {
+        TransportClient transportClient = esClientMananger.getEsClient();
+        transportClient.prepareUpdate(INDEX_AMS, index_type, index_id).setScript(new Script("ctx._source.remove(\"" + field + "\")", ScriptService.ScriptType.INLINE, null, null)).get();
         return true;
     }
 
     /**
-     * @param INDEX_AMS 索引名;
+     * @param INDEX_AMS  索引名;
      * @param index_type 索引类型;
      * @param qualifiers kv形式的键值对;
      * @return 更新失败或者成功.
      * @desc 更新索引字段信息.
      */
     public boolean update(String INDEX_AMS, String index_type, String index_id, Map<String, Object> qualifiers) {
-        TransportClient transportClient = EsClientMananger.getEsClient();
+        TransportClient transportClient = esClientMananger.getEsClient();
         UpdateRequest updateRequest = new UpdateRequest();
         updateRequest.index(INDEX_AMS).type(index_type).id(index_id).doc(qualifiers).refresh(true);
-        FlushRequest flushRequest = new FlushRequest(INDEX_AMS);
-        //flushRequest.
         transportClient.update(updateRequest).actionGet();
+        //flushRequest.立即刷新
+        FlushRequest flushRequest = new FlushRequest(INDEX_AMS);
         flushRequest.force(true);
         transportClient.admin().indices().flush(flushRequest).actionGet();
         return true;
-
     }
 
+    public void update1(String index, String type, String id, Map<String, String> map) {
+        TransportClient client = esClientMananger.getEsClient();
+        try {
+            client.prepareUpdate(index, type, id).setDoc(map).get();
+        } catch (Exception e) {
+            System.err.println("update wrong " + index + " " + id);
+            e.printStackTrace();
+        }
+    }
+
+    /**
+     * 批量更新
+     *
+     * @param index
+     * @param type
+     * @param lists
+     */
+    public void batchUpdate(String index, String type, List<Map<String, Object>> lists) {
+        TransportClient client = esClientMananger.getEsClient();
+        try {
+            ArrayList<UpdateRequestBuilder> updateRequestBuilders = new ArrayList<>();
+            BulkRequestBuilder bulkRequest = client.prepareBulk();
+            for (Map<String, Object> map : lists) {
+                if (map == null) {
+                    continue;
+                }
+                UpdateRequestBuilder request = changeToBuilder(bulkRequest, client, index, type, map);
+                bulkRequest.add(request);
+                updateRequestBuilders.add(request);
+            }
+            BulkResponse bulkResponse = bulkRequest.get();
+            BulkItemResponse[] items = bulkResponse.getItems();
+//            if (bulkResponse.hasFailures()) {
+                ArrayList<Object> list = new ArrayList<>();
+                for (int i = 0; i < items.length; i++) {
+                    BulkItemResponse itemResponse = items[i];
+                    if (itemResponse.isFailed()) {
+                        Failure failure = itemResponse.getFailure();
+                        Throwable cause = failure.getCause();
+                        logger.error(i + " cause==>>>> " + cause);
+//                        if (!cause.toString().contains("AlreadyExistsException")) {
+                        UpdateRequestBuilder requestBuilder = updateRequestBuilders.get(i);
+                        boolean add = arrayBlockingQueue.add(requestBuilder);
+                        logger.info("arrayBlockingQueue.size():" + arrayBlockingQueue.size());
+                        if (!add) {
+                            arrayBlockingQueue.put(requestBuilder);
+                        }
+//                        }
+                    }else {
+                        list.add(itemResponse.getId());
+                    }
+                }
+//            }
+            logger.info("update success:"+list);
+        } catch (Exception e) {
+            e.printStackTrace();
+            logger.error(index + " ==>>  type : " + type + "  size: " + lists.size());
+        }
+    }
 
     private IndexRequestBuilder changeToBuilderhasParent(BulkRequestBuilder bulkRequest, TransportClient client,
                                                          String index, String type, Object obj) {
@@ -365,7 +466,7 @@ public class ElasticSearchHelper<T> {
     }
 
     public void BulkInsertHasParent(String index, String type, List<Object> lists) {
-        TransportClient client = EsClientMananger.getEsClient();
+        TransportClient client = esClientMananger.getEsClient();
         try {
             BulkRequestBuilder bulkRequest = client.prepareBulk();
 
@@ -384,16 +485,14 @@ public class ElasticSearchHelper<T> {
                     }
                 }
             }
-        } finally {
-            if (client != null) {
-                // client.close();
-            }
+        } catch (Exception e) {
+            e.printStackTrace();
         }
 
     }
 
     public boolean exists(String index, String type, String mid) {
-        TransportClient client = EsClientMananger.getEsClient();
+        TransportClient client = esClientMananger.getEsClient();
         SearchRequestBuilder searchRequest = null;
         SearchResponse searchResponse = null;
         try {
@@ -416,19 +515,18 @@ public class ElasticSearchHelper<T> {
     }
 
     public void InsertHasParent(String index, String type, String id, Object bean, String parent) {
-        TransportClient client = EsClientMananger.getEsClient();
+        TransportClient client = esClientMananger.getEsClient();
         try {
             JSONObject jsonObj1 = (JSONObject) JSON.toJSON(bean);
             client.prepareIndex(index, type, id).setSource(jsonObj1).setParent(parent).execute().actionGet();
         } catch (Exception e) {
             // TODO Auto-generated catch block
             e.printStackTrace();
-        } finally {
-            if (client != null) {
-                // client.close();
-            }
         }
     }
 
+    public void close() {
+        esClientMananger.close();
+    }
 
 }

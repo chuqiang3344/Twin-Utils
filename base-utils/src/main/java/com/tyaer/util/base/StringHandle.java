@@ -1,4 +1,4 @@
-package com.tyaer.util;
+package com.tyaer.util.base;
 
 import org.apache.commons.lang3.StringUtils;
 

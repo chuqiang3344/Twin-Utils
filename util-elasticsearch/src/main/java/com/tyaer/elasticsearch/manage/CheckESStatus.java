@@ -1,4 +1,4 @@
-package com.tyaer.elasticsearch;
+package com.tyaer.elasticsearch.manage;
 
 import com.tyaer.elasticsearch.bean.ESConstant;
 import com.tyaer.elasticsearch.bean.Paginator;
@@ -13,6 +13,7 @@ import org.elasticsearch.index.query.BoolQueryBuilder;
 import org.elasticsearch.index.query.QueryBuilders;
 import org.elasticsearch.search.SearchHits;
 
+import java.io.InputStream;
 import java.net.InetAddress;
 import java.util.ArrayList;
 import java.util.List;
@@ -63,10 +64,10 @@ public class CheckESStatus {
         StringBuffer result = new StringBuffer();
 //	        Map<String,String> emotionMap = null;
 
-//	        if("t_status_weibo".equals(index_type)&&null!=orgId&&(null==fields||Arrays.asList(fields).contains("emotion"))){     
-//	        	 
-//	         
-//	        	emotionMap=hbaseAPI.getEmotions(orgId, Arrays.asList(ids)); 
+//	        if("t_status_weibo".equals(index_type)&&null!=orgId&&(null==fields||Arrays.asList(fields).contains("emotion"))){
+//
+//
+//	        	emotionMap=hbaseAPI.getEmotions(orgId, Arrays.asList(ids));
 //	        	System.out.println(emotionMap);
 //	        }
 
@@ -128,7 +129,8 @@ public class CheckESStatus {
         List<String> availableESServers = new ArrayList<String>();
         try {
 //			  props = PropertiesLoaderUtils.loadAllProperties("elasticsearch.properties");
-            props.load(CheckESStatus.class.getResourceAsStream("elasticsearch.properties"));
+            InputStream resourceAsStream = CheckESStatus.class.getResourceAsStream("/elasticsearch.properties");
+            props.load(resourceAsStream);
             String es_hosts = props.getProperty("es.hosts").trim();
             String nodes[] = es_hosts.split(",");
 

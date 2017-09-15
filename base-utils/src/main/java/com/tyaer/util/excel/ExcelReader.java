@@ -16,7 +16,7 @@ import java.util.*;
 
 /**
  * @author Twin
- * 操作Excel表格的功能类
+ *         操作Excel表格的功能类
  */
 public class ExcelReader {
 
@@ -70,7 +70,7 @@ public class ExcelReader {
      * @param sheetNum 第几个表
      * @return Map 包含单元格数据内容的Map对象
      */
-    public ArrayList<ArrayList<String>>  readExceltoList(String fileUrl, int sheetNum) {
+    public ArrayList<ArrayList<String>> readExceltoList(String fileUrl, int sheetNum) {
         ArrayList<ArrayList<String>> table = new ArrayList<>();
         FileInputStream fis = null;
         try {
@@ -89,8 +89,17 @@ public class ExcelReader {
             for (int i = 0; i < rowNum; i++) {
                 Row row = sheet.getRow(i);
                 ArrayList<String> list = new ArrayList<>();
-                for (int j = 0; j < colNum; j++) {
-                    list.add(getCellFormatValue(row.getCell(j)).trim());
+                if(row==null){
+                    continue;
+                }else{
+                    for (int j = 0; j < colNum; j++) {
+                        Cell cell = row.getCell(j);
+                        if (cell==null) {
+                            list.add("");
+                        }else{
+                            list.add(getCellFormatValue(cell).trim());
+                        }
+                    }
                 }
                 table.add(list);
             }
@@ -143,7 +152,7 @@ public class ExcelReader {
     /**
      * 生成
      *
-     * @param table
+     * @param lists
      * @param fileUrl
      * @return
      */
@@ -164,7 +173,14 @@ public class ExcelReader {
             Row row = sheet1.createRow(i);
             List<String> listi = lists.get(i);
             for (int i1 = 0; i1 < listi.size(); i1++) {
-                row.createCell(i1).setCellValue(listi.get(i1));
+                String value = listi.get(i1);
+                if(value==null){
+                    value="";
+                }else if (value.length() > 32767) {
+                    System.out.println("文本过长："+value.length());
+                    value=value.substring(0,32767);
+                }
+                row.createCell(i1).setCellValue(value);
             }
         }
         try {
