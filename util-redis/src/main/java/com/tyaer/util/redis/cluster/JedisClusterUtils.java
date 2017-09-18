@@ -7,8 +7,13 @@ public class JedisClusterUtils {
 
     static JedisCluster jc = null;
     static int expireTime = 60 * 60 * 24 * 7;//7天
+    String redisURLs;
 
-    public static boolean isExists(String key, String value) {
+    public JedisClusterUtils(String redisURLs) {
+        this.redisURLs = redisURLs;
+    }
+
+    public boolean isExists(String key, String value) {
         try {
             JedisCluster jedis = getJedis();
             if (!jedis.exists(key)) {
@@ -25,12 +30,12 @@ public class JedisClusterUtils {
         }
     }
 
-    public static JedisCluster getJedis() {
+    public JedisCluster getJedis() {
         if (jc == null) {
             synchronized (JedisClusterUtils.class) {
                 if (jc == null) {
                     JedisClusterManager jcManager = new JedisClusterManager();
-                    jc = jcManager.getRedisCluster();
+                    jc = jcManager.getRedisCluster(redisURLs);
                 }
             }
 
@@ -39,11 +44,10 @@ public class JedisClusterUtils {
     }
 
     public static void main(String[] args) {
+        JedisClusterUtils jedisClusterUtils=new JedisClusterUtils("192.168.2.114:7000,192.168.2.114:7001,192.168.2.114:7002");
         long begin = System.currentTimeMillis();
         for (int i = 0; i < 1; i++) {
-
-
-            System.out.println(JedisClusterUtils.isExists(i + "", ""));
+            System.out.println(jedisClusterUtils.isExists(i + "", ""));
         }
         long end = System.currentTimeMillis();
         System.out.println((end - begin) / 1000.0);
