@@ -26,7 +26,6 @@ public class Test {
 
         // 第二步：编写消息
 
-
         InternetAddress fromAddress = new InternetAddress(from);
 
 

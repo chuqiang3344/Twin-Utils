@@ -6,7 +6,6 @@ import java.util.concurrent.TimeUnit;
 import org.apache.curator.framework.recipes.locks.InterProcessMutex;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.webant.lock.DistributeXLock;
 
 public class CuratorLock implements DistributeXLock {
 	private Logger logger = LoggerFactory.getLogger(CuratorLock.class);

@@ -1,5 +1,4 @@
-package com.tyaer.util;
-
+package com.tyaer.util.base;
 
 
 import java.beans.BeanInfo;
@@ -73,7 +72,7 @@ public class BeanUtils {
     // Bean --> Map 1: 利用Introspector和PropertyDescriptor 将Bean --> Map
     public static Map<String, Object> transBean2Map(Object obj) {
 
-        if(obj == null){
+        if (obj == null) {
             return null;
         }
         Map<String, Object> map = new HashMap<>();
@@ -82,16 +81,18 @@ public class BeanUtils {
             PropertyDescriptor[] propertyDescriptors = beanInfo.getPropertyDescriptors();
             for (PropertyDescriptor property : propertyDescriptors) {
                 String key = property.getName();
-
                 // 过滤class属性
                 if (!key.equals("class")) {
                     // 得到property对应的getter方法
                     Method getter = property.getReadMethod();
                     Object value = getter.invoke(obj);
-
-                    map.put(key, value);
+                    if (value != null) {
+                        String string = value.toString();
+                        if (!string.equals("null")) {
+                            map.put(key, value);
+                        }
+                    }
                 }
-
             }
         } catch (Exception e) {
             System.out.println("transBean2Map Error " + e);

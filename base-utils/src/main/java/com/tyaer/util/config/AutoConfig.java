@@ -26,7 +26,7 @@ public class AutoConfig {
         BufferedInputStream bufferedInputStream = null;
         try {
 //            bufferedInputStream = new BufferedInputStream(BaseConfig.class.getResourceAsStream("/pro.properties"));
-            bufferedInputStream = new BufferedInputStream(BaseConfig.class.getClassLoader().getResourceAsStream("pro.properties"));
+            bufferedInputStream = new BufferedInputStream(AutoConfig.class.getClassLoader().getResourceAsStream("pro.properties"));
 //            bufferedInputStream = new BufferedInputStream(new FileInputStream(new File("./configure/pro.properties")));
             pps.load(bufferedInputStream);
             Set<String> set = pps.stringPropertyNames();

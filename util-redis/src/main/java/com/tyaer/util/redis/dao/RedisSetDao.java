@@ -50,6 +50,7 @@ public class RedisSetDao extends RedisHelper {
             return sismember;
         } catch (JedisDataException e) {
             LOGGER.warn("请检查集合名称是否已存在，且非set类型！");
+            e.printStackTrace();
         }finally {
             jedis.close();
         }

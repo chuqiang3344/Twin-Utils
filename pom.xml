@@ -13,6 +13,7 @@
         <module>util-redis</module>
         <module>util-zookeeper</module>
         <module>RouterReboot</module>
+        <module>IKAnalyzer</module>
     </modules>
 
     <build>

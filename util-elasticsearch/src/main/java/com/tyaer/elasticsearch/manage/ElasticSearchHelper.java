@@ -23,6 +23,7 @@ import org.elasticsearch.action.search.SearchResponse;
 import org.elasticsearch.action.search.SearchType;
 import org.elasticsearch.action.update.UpdateRequest;
 import org.elasticsearch.action.update.UpdateRequestBuilder;
+import org.elasticsearch.action.update.UpdateResponse;
 import org.elasticsearch.client.transport.TransportClient;
 import org.elasticsearch.common.unit.TimeValue;
 import org.elasticsearch.common.xcontent.XContentBuilder;
@@ -42,8 +43,8 @@ public class ElasticSearchHelper {
     private ArrayBlockingQueue<UpdateRequestBuilder> arrayBlockingQueue = new ArrayBlockingQueue(8192);
     private EsClientMananger esClientMananger;
 
-    public ElasticSearchHelper(String es_hosts,String esClusterName) {
-        esClientMananger = new EsClientMananger(es_hosts,esClusterName);
+    public ElasticSearchHelper(String es_hosts, String esClusterName) {
+        esClientMananger = new EsClientMananger(es_hosts, esClusterName);
         new Thread(() -> {
             while (esClientMananger.REFRESH_CLIENT_SWITCH && arrayBlockingQueue.size() == 0) {
                 try {
@@ -224,6 +225,60 @@ public class ElasticSearchHelper {
         }
     }
 
+
+
+    /**
+     * @param INDEX_AMS  索引名;
+     * @param index_type 索引类型;
+     * @return 更新失败或者成功.
+     * @desc 更新索引字段信息.
+     */
+    public boolean delete(String INDEX_AMS, String index_type, String index_id, String field) {
+        TransportClient transportClient = esClientMananger.getEsClient();
+        transportClient.prepareUpdate(INDEX_AMS, index_type, index_id).setScript(new Script("ctx._source.remove(\"" + field + "\")", ScriptService.ScriptType.INLINE, null, null)).get();
+        return true;
+    }
+
+    public void bulkDelete(String index_name, String index_type, String field,String... ids) {
+        TransportClient transportClient = esClientMananger.getEsClient();
+        BulkRequestBuilder bulkRequest = transportClient.prepareBulk();
+        BulkResponse bulkResponse = null;
+        String json_result = "";
+        try {
+            if (true) {
+                //构建批量删除请求.
+                for (String id : ids) {
+//                    DeleteRequestBuilder deleteBuilder = transportClient.prepareDelete(index_name, index_type, id);
+                    UpdateRequestBuilder deleteBuilder = transportClient.prepareUpdate(index_name, index_type, id).setScript(new Script("ctx._source.remove(\"" + field + "\")", ScriptService.ScriptType.INLINE, null, null));
+                    bulkRequest.add(deleteBuilder);
+                }
+
+                // 批量删除.
+                bulkResponse = bulkRequest.execute().actionGet();
+
+                // 批量错误信息.
+                if (bulkResponse.hasFailures()) {
+                    // 获取错误索引列表信息.
+                    String failure_indices = "";
+                    for (BulkItemResponse itemResponse : bulkResponse.getItems()) {
+                        failure_indices += itemResponse.getFailure().getIndex() + ",";
+                    }
+
+                } else {
+
+                }
+
+                // 释放请求.
+                bulkRequest.request().requests().clear();//释放请求.
+                bulkRequest.setTimeout(TimeValue.timeValueMinutes(20000)); //设置请求超时时间
+            }
+            System.out.println("delete result:" + json_result);
+
+        } catch (ElasticsearchException e) {
+            e.printStackTrace();
+        }
+    }
+
     /**
      * @return 索引列表;
      * @desc 获取所有索引.
@@ -353,18 +408,6 @@ public class ElasticSearchHelper {
     /**
      * @param INDEX_AMS  索引名;
      * @param index_type 索引类型;
-     * @return 更新失败或者成功.
-     * @desc 更新索引字段信息.
-     */
-    public boolean delete(String INDEX_AMS, String index_type, String index_id, String field) {
-        TransportClient transportClient = esClientMananger.getEsClient();
-        transportClient.prepareUpdate(INDEX_AMS, index_type, index_id).setScript(new Script("ctx._source.remove(\"" + field + "\")", ScriptService.ScriptType.INLINE, null, null)).get();
-        return true;
-    }
-
-    /**
-     * @param INDEX_AMS  索引名;
-     * @param index_type 索引类型;
      * @param qualifiers kv形式的键值对;
      * @return 更新失败或者成功.
      * @desc 更新索引字段信息.
@@ -414,27 +457,27 @@ public class ElasticSearchHelper {
             BulkResponse bulkResponse = bulkRequest.get();
             BulkItemResponse[] items = bulkResponse.getItems();
 //            if (bulkResponse.hasFailures()) {
-                ArrayList<Object> list = new ArrayList<>();
-                for (int i = 0; i < items.length; i++) {
-                    BulkItemResponse itemResponse = items[i];
-                    if (itemResponse.isFailed()) {
-                        Failure failure = itemResponse.getFailure();
-                        Throwable cause = failure.getCause();
-                        logger.error(i + " cause==>>>> " + cause);
+            ArrayList<Object> list = new ArrayList<>();
+            for (int i = 0; i < items.length; i++) {
+                BulkItemResponse itemResponse = items[i];
+                if (itemResponse.isFailed()) {
+                    Failure failure = itemResponse.getFailure();
+                    Throwable cause = failure.getCause();
+                    logger.error(i + " cause==>>>> " + cause);
 //                        if (!cause.toString().contains("AlreadyExistsException")) {
-                        UpdateRequestBuilder requestBuilder = updateRequestBuilders.get(i);
-                        boolean add = arrayBlockingQueue.add(requestBuilder);
-                        logger.info("arrayBlockingQueue.size():" + arrayBlockingQueue.size());
-                        if (!add) {
-                            arrayBlockingQueue.put(requestBuilder);
-                        }
-//                        }
-                    }else {
-                        list.add(itemResponse.getId());
+                    UpdateRequestBuilder requestBuilder = updateRequestBuilders.get(i);
+                    boolean add = arrayBlockingQueue.add(requestBuilder);
+                    logger.info("arrayBlockingQueue.size():" + arrayBlockingQueue.size());
+                    if (!add) {
+                        arrayBlockingQueue.put(requestBuilder);
                     }
+//                        }
+                } else {
+                    list.add(itemResponse.getId());
                 }
+            }
 //            }
-            logger.info("update success:"+list);
+            logger.info("update success:" + list);
         } catch (Exception e) {
             e.printStackTrace();
             logger.error(index + " ==>>  type : " + type + "  size: " + lists.size());

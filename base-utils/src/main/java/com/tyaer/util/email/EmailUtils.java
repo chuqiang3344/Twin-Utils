@@ -20,8 +20,7 @@ public class EmailUtils {
                                    String fromUserPassword, List<String> tos, List<String> ccs, String subject,
                                    String messageText, String messageType) throws MessagingException {
         // 第一步：配置javax.mail.Session对象  
-//        System.out.println("为" + smtpHost + "配置mail session对象");
-
+        System.out.println("为" + smtpHost + "配置mail session对象");
 
         Properties props = new Properties();
         props.put("mail.smtp.host", smtpHost);

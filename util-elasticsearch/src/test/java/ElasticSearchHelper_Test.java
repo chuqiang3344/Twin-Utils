@@ -19,6 +19,9 @@ public class ElasticSearchHelper_Test {
 
     }
 
+    String index = "zcq_test";
+    String type = "t_user_test";
+
     @Test
     public void t1() {
         System.out.println(elasticSearchHelper.getIndicies());
@@ -30,16 +33,25 @@ public class ElasticSearchHelper_Test {
         List<Map<String, Object>> mapList = new ArrayList<>();
         HashMap<String, Object> map = new HashMap<>();
         map.put("_id",10001);
-        map.put("name","abc");
+        map.put("name","a");
+        map.put("fansnum",100);
         map.put("updatetime",new Timestamp(System.currentTimeMillis()));
         mapList.add(map);
 
         HashMap<String, Object> map2 = new HashMap<>();
         map2.put("_id",10002);
         map2.put("name","b");
+        map2.put("updatetime",new Timestamp(System.currentTimeMillis()));
         mapList.add(map2);
 
-        elasticSearchHelper.batchUpdate("zcq_test","t_user_test",mapList);
+        elasticSearchHelper.batchUpdate(index, type,mapList);
+    }
+
+    @Test
+    public void deleteField(){
+//        elasticSearchHelper.delete("zcq_test","t_user_test",10001+"");
+//        elasticSearchHelper.delete("zcq_test","t_user_test",10001+"","fansnum");
+        elasticSearchHelper.bulkDelete("zcq_test","t_user_test","name","10001","10002");
     }
 
     @After
