@@ -12,20 +12,20 @@ import java.net.UnknownHostException;
 public class EsClientMananger {
     private static final Logger logger = Logger.getLogger(EsClientMananger.class);
     protected boolean REFRESH_CLIENT_SWITCH = true;
-    private TransportClient transportClient = null;
     String es_hosts = "192.168.2.116:9300,192.168.2.115:9300,192.168.2.116:9400";
     String esClusterName;
+    private TransportClient transportClient = null;
 
     public EsClientMananger(String es_hosts, String esClusterName) {
         this.es_hosts = es_hosts;
-        this.esClusterName=esClusterName;
+        this.esClusterName = esClusterName;
     }
 
     public static void main(String[] args) {
 
         String es_hosts = "192.168.2.116:9300,192.168.2.115:9300,192.168.2.116:9400";
         String esClusterName = "izhonghong";
-        EsClientMananger esClientMananger = new EsClientMananger(es_hosts,esClusterName);
+        EsClientMananger esClientMananger = new EsClientMananger(es_hosts, esClusterName);
         long begin = System.currentTimeMillis();
         for (int i = 0; i < 10000; i++) {
             TransportClient client2 = esClientMananger.getEsClient();
@@ -44,24 +44,26 @@ public class EsClientMananger {
     public TransportClient getEsClient() {
         if (transportClient == null) {
             synchronized (this) {
-                try {
-                    Settings settings = Settings.settingsBuilder().put("cluster.name", ESConstants.ESClusterName)
-                            .put("tclient.transport.sniff", true).build();//自动嗅探整个集群的状态，把集群中其它机器的ip地址加到客户端中
-                    transportClient = TransportClient.builder().settings(settings).build();
+                if (transportClient == null) {
+                    try {
+                        Settings settings = Settings.settingsBuilder().put("cluster.name", ESConstants.ESClusterName)
+                                .put("tclient.transport.sniff", true).build();//自动嗅探整个集群的状态，把集群中其它机器的ip地址加到客户端中
+                        transportClient = TransportClient.builder().settings(settings).build();
 //				String [] ips = Config.get(Config.KEY_ES_HOST).split(",");
-                    String[] ips = es_hosts.split(",");
-                    for (String ip : ips) {
-                        String temp[] = ip.split(":");
-                        if (temp.length != 2) {
-                            System.out.println("ES ip set worng ");
+                        String[] ips = es_hosts.split(",");
+                        for (String ip : ips) {
+                            String temp[] = ip.split(":");
+                            if (temp.length != 2) {
+                                System.out.println("ES ip set worng ");
+                            }
+                            String host = temp[0];
+                            int port = Integer.valueOf(temp[1]);
+                            transportClient.addTransportAddress(new InetSocketTransportAddress(InetAddress.getByName(host), port));
                         }
-                        String host = temp[0];
-                        int port = Integer.valueOf(temp[1]);
-                        transportClient.addTransportAddress(new InetSocketTransportAddress(InetAddress.getByName(host), port));
-                    }
 //                    refreshClient();
-                } catch (UnknownHostException e) {
-                    e.printStackTrace();
+                    } catch (UnknownHostException e) {
+                        e.printStackTrace();
+                    }
                 }
             }
         }

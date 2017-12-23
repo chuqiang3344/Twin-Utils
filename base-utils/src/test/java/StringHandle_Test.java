@@ -2,6 +2,7 @@ import com.alibaba.fastjson.JSON;
 import org.junit.Test;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Calendar;
 import java.util.List;
 import java.util.regex.Matcher;
@@ -11,6 +12,15 @@ import java.util.regex.Pattern;
  * Created by Twin on 2017/5/17.
  */
 public class StringHandle_Test {
+
+    @Test
+    public void s1(){
+        String[] split = ",asd,,abs".split(",");
+        System.out.println(Arrays.toString(split));
+        List<String> list = Arrays.asList(split);
+        System.out.println(list);
+        System.out.println(list.contains("a"));
+    }
 
     @Test
     public void one(){

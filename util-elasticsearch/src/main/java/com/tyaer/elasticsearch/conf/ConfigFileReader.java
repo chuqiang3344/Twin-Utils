@@ -1,4 +1,4 @@
-package com.tyaer.util.config;
+package com.tyaer.elasticsearch.conf;
 
 import org.apache.log4j.Logger;
 
@@ -10,30 +10,31 @@ import java.util.Properties;
 import java.util.Set;
 
 /**
- * Created by Twin on 2017/9/18.
+ * Created by Twin on 2017/11/20.
  */
-public class AutoConfig {
-    private static final Logger LOGGER = Logger.getLogger(AutoConfig.class);
+public class ConfigFileReader {
+    private static final Logger LOGGER = Logger.getLogger(ConfigFileReader.class);
+    private String fileName;
+    private Map<String, String> configs = new HashMap<String, String>();
 
-    private static Map<String, String> configs = new HashMap<String, String>();
-
-    static {
-        refreshConfig();
+    public ConfigFileReader(String fileName) {
+        this.fileName = fileName;
+        refreshConfig(fileName);
     }
 
-    public static void refreshConfig() {
+    public void refreshConfig(String fileName) {
         Properties pps = new Properties();
         BufferedInputStream bufferedInputStream = null;
         try {
 //            bufferedInputStream = new BufferedInputStream(BaseConfig.class.getResourceAsStream("/pro.properties"));
-            bufferedInputStream = new BufferedInputStream(AutoConfig.class.getClassLoader().getResourceAsStream("pro.properties"));
+            bufferedInputStream = new BufferedInputStream(DTO.class.getClassLoader().getResourceAsStream(fileName));
 //            bufferedInputStream = new BufferedInputStream(new FileInputStream(new File("./configure/pro.properties")));
             pps.load(bufferedInputStream);
             Set<String> set = pps.stringPropertyNames();
             for (String key : set) {
                 configs.put(key, pps.getProperty(key));
             }
-            LOGGER.info(AutoConfig.class.getSimpleName() + ":" + configs);
+            LOGGER.info("###"+ConfigFileReader.class.getSimpleName() + ":" + configs);
         } catch (IOException e) {
             e.printStackTrace();
         } finally {
@@ -48,16 +49,12 @@ public class AutoConfig {
         }
     }
 
-    public static String getConfigValue(String key) {
+    public String getConfigValue(String key) {
         if (configs.containsKey(key)) {
             return configs.get(key);
         } else {
             LOGGER.warn("无配置信息：" + key);
             return null;
         }
-    }
-
-    public static void main(String[] args) {
-        System.out.println(AutoConfig.getConfigValue("kafka.brokers"));
     }
 }

@@ -3,6 +3,8 @@ package com.tyaer.util.date;
 import org.junit.Test;
 
 import java.sql.Timestamp;
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
 import java.util.Calendar;
 import java.util.Date;
 
@@ -27,5 +29,18 @@ public class Demo {
         System.out.println(timestamp.getTime());
         Date time = new Date(timestamp.getTime());
         System.out.println(time);
+    }
+
+    @Test
+    public void t1() throws ParseException {
+//        SimpleDateFormat simpleDateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+//        System.out.println(simpleDateFormat.parse("2017-11-03 19:46:25.0"));
+
+        SimpleDateFormat simpleDateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS");
+        String source = "2017-11-03 19:46:25.012";
+        System.out.println(source);
+        Date date = simpleDateFormat.parse(source);
+        System.out.println(date);
+        System.out.println(date.getTime());
     }
 }

@@ -19,6 +19,7 @@ public class SimpleZKClient {
     private static final String ZK_SESSION_TIMEOUT = "zk.sessionTimeoutMs";
     private static Map<String, String> configs;
     private static volatile CuratorFramework zkClient = null;
+
     private SimpleZKClient() {
 
     }

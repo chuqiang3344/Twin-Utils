@@ -47,11 +47,15 @@ public class Property {
         System.out.println(System.getProperty("hadoop.home"));
         System.out.println(System.getProperty("SCALA_HOME"));
 
+        System.out.println("=================");
+        System.out.println(Property.class.getResource(""));
+        System.out.println(Property.class.getResource("/").getPath());
 
     }
 
     @Test
     public void env(){
+        System.out.println(Property.class.getResource("/").getPath());
         Map<String, String> map = System.getenv();
         for(Iterator<String> itr = map.keySet().iterator(); itr.hasNext();){
             String key = itr.next();

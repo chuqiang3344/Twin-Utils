@@ -39,7 +39,6 @@ public class EsBulkHandler implements Runnable {
         Executors.newSingleThreadExecutor().execute(this);
     }
 
-
     public DeleteRequestBuilder deleteChangeToBuilder(String index, String type, String id) {
         try {
             DeleteRequestBuilder deleteRequestBuilder = esClientMananger.getEsClient().prepareDelete(index, type, id);

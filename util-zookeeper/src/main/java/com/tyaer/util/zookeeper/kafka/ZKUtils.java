@@ -126,6 +126,7 @@ public class ZKUtils {
 		ZKUtils.writeDataToZK(zkPath, "a");
 		long t2 = Calendar.getInstance().getTimeInMillis();
 		String result = ZKUtils.getDataFromZK(zkPath);
+		System.out.println(result);
 		long t3 = Calendar.getInstance().getTimeInMillis();
 		System.out.println(t2-t1);
 		System.out.println(t3-t2);

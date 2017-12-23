@@ -1,4 +1,3 @@
-import com.sun.deploy.config.Config;
 import com.tyaer.elasticsearch.manage.ElasticSearchHelper;
 import com.tyaer.elasticsearch.manage.EsClientMananger;
 import org.apache.log4j.Logger;
@@ -28,14 +27,13 @@ public class Scan_Test {
     private static final Logger logger = Logger.getLogger(ElasticSearchHelper.class);
 
 
-//    static String es_hosts = "192.168.2.116:9300,192.168.2.115:9300,192.168.2.116:9400";
-    static String es_hosts = "192.168.3.111:9300";
+    //    static String es_hosts = "192.168.2.116:9300,192.168.2.115:9300,192.168.2.116:9400";
+//    static String es_hosts = "192.168.3.111:9300";
+    static String es_hosts = "192.168.2.116:9300,192.168.2.115:9300,192.168.2.116:9400";
     static String esClusterName = "izhonghong";
-    private  static EsClientMananger esClientMananger=new EsClientMananger(es_hosts,esClusterName);
-
-
     static String i_ams_total_data = "i_ams_total_data";
     static String t_status_weibo = "t_status_weibo";
+    private static EsClientMananger esClientMananger = new EsClientMananger(es_hosts, esClusterName);
     static TransportClient transportClient = esClientMananger.getEsClient();
 
 
@@ -134,8 +132,7 @@ public class Scan_Test {
     }
 
     @Test
-    public void  count(){
-
+    public void count() {
 
         SearchRequestBuilder searchRequest = null;
         SearchResponse searchResponse = null;
@@ -151,22 +148,17 @@ public class Scan_Test {
         BoolQueryBuilder queryBuilder = QueryBuilders.boolQuery();
         Scroll scoll = new Scroll(new TimeValue(600000));
 
-
         queryBuilder.must(QueryBuilders.rangeQuery("operatorTime").from(start).to(end).format("yyyy-MM-dd HH:mm:ss"))
                 .must(QueryBuilders.termQuery("projectName", "data_platform_api"));
 
 
-
         AvgBuilder aggregation = AggregationBuilders
                 .avg("avg")
-                .field("operatorTimeLE")
-                ;
+                .field("operatorTimeLE");
 
         AggregationBuilder term = AggregationBuilders
                 .terms("group")
-                .field("operatorObject").subAggregation(aggregation)
-
-                ;
+                .field("operatorObject").subAggregation(aggregation);
 
         searchRequest = transportClient.prepareSearch(new String[]{i_ams_total_data});
         searchRequest.setTypes(new String[]{t_status_weibo})
@@ -182,9 +174,10 @@ public class Scan_Test {
 
         // .setQuery(QueryBuilders.termQuery("content", "黑社交"))
         searchResponse = searchRequest.get(); //执行请求.
-        // 获取命中
-        SearchHits hits = searchResponse.getHits();
 
 //        System.out.println(searchResponse);
+        // 获取命中
+        SearchHits hits = searchResponse.getHits();
+        System.out.println(hits);
     }
 }

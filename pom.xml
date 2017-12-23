@@ -14,6 +14,7 @@
         <module>util-zookeeper</module>
         <module>RouterReboot</module>
         <module>IKAnalyzer</module>
+        <module>algorithm-utils</module>
     </modules>
 
     <build>

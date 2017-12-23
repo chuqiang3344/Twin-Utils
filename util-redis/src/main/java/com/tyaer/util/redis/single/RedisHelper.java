@@ -53,7 +53,7 @@ public abstract class RedisHelper {
         return type;
     }
 
-    protected Jedis getJedis() {
+    public Jedis getJedis() {
         Jedis jedis = jedisPool.getResource();
         jedis.auth(redis_psw);
         return jedis;

@@ -135,6 +135,8 @@ public class Base62Util {
 
         System.out.println(url2mid("F2IR644gx"));
         System.out.println(mid2url("4106490840969713"));
+
+        System.out.println(mid2url("4162136668820995"));
     }
 
 }

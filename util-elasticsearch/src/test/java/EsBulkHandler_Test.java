@@ -40,17 +40,18 @@ public class EsBulkHandler_Test {
     public void t1() {
         EsBulkHandler esBulkHandler = new EsBulkHandler(es_hosts, esClusterName);
         HashMap<String, Object> map = new HashMap<>();
-        int id = 10000;
+        int id = 10001;
         map.put("_id", id);
         map.put("name", "bbbbbbb");
         map.put("fansnum", 100);
         map.put("updatetime", new Timestamp(System.currentTimeMillis()));
-//            esBulkHandler.updateChangeToBuilder(index,"t_test2",map);
+            esBulkHandler.updateChangeToBuilder(index,type,map);
         esBulkHandler.deleteFieldChangeToBuilder(index, type, "10001", "updatetime");
-        esBulkHandler.deleteFieldChangeToBuilder(index, type, "10001", "updatetime");
+//        esBulkHandler.deleteFieldChangeToBuilder(index, type, "10001", "updatetime");
 //            esBulkHandler.deleteFieldChangeToBuilder(index,type,"10001","fansnum");
         try {
-            Thread.sleep(100000);
+            Thread.sleep(0);
+//            Thread.sleep(100000);
         } catch (InterruptedException e) {
             e.printStackTrace();
         }

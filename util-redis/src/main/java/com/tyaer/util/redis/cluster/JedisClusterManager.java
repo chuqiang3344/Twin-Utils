@@ -3,6 +3,7 @@ package com.tyaer.util.redis.cluster;
 import com.tyaer.util.redis.single.RedisHelper;
 import org.apache.log4j.Logger;
 import redis.clients.jedis.HostAndPort;
+import redis.clients.jedis.Jedis;
 import redis.clients.jedis.JedisCluster;
 import redis.clients.jedis.JedisPoolConfig;
 
@@ -13,6 +14,8 @@ public class JedisClusterManager {
     protected static final Logger LOGGER = Logger.getLogger(JedisClusterManager.class);
 
     public JedisCluster getRedisCluster(String redisURLs) {
+
+
         Set<HostAndPort> jedisClusterNodes = new HashSet<HostAndPort>();
 //		String redisURLs = Config.get(Config.KEY_REDIS_URL);
 //        String redisURLs = "";
